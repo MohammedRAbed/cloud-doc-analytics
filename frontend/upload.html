@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Documents - Document Analytics</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-cloud-arrow-up"></i>
+                Document Analytics
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="bi bi-house"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/upload">
+                            <i class="bi bi-cloud-upload"></i> Upload
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/search">
+                            <i class="bi bi-search"></i> Search
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/classify">
+                            <i class="bi bi-tags"></i> Classify
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="mb-4">
+                    <i class="bi bi-cloud-upload"></i>
+                    Upload Documents
+                </h2>
+            </div>
+        </div>
+
+        <!-- Upload Options Tabs -->
+        <div class="row">
+            <div class="col-12">
+                <nav>
+                    <div class="nav nav-tabs mb-4" id="nav-tab" role="tablist">
+                        <button class="nav-link active" id="nav-manual-tab" data-bs-toggle="tab" data-bs-target="#nav-manual" type="button" role="tab">
+                            <i class="bi bi-upload"></i> Manual Upload
+                        </button>
+                        <button class="nav-link" id="nav-webscrape-tab" data-bs-toggle="tab" data-bs-target="#nav-webscrape" type="button" role="tab">
+                            <i class="bi bi-globe"></i> Web Scraping
+                        </button>
+                        <button class="nav-link" id="nav-batch-tab" data-bs-toggle="tab" data-bs-target="#nav-batch" type="button" role="tab">
+                            <i class="bi bi-folder-plus"></i> Batch Upload
+                        </button>
+                    </div>
+                </nav>
+
+                <div class="tab-content" id="nav-tabContent">
+                    <!-- Manual Upload Tab -->
+                    <div class="tab-pane fade show active" id="nav-manual" role="tabpanel">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-8">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <i class="bi bi-file-earmark-arrow-up"></i>
+                                            Select Documents to Upload
+                                        </h5>
+                                        
+                                        <!-- File Drop Zone -->
+                                        <div class="upload-zone border border-2 border-dashed rounded p-5 text-center mb-4" 
+                                             id="dropZone"
+                                             ondrop="dropHandler(event);" 
+                                             ondragover="dragOverHandler(event);"
+                                             ondragenter="dragEnterHandler(event);"
+                                             ondragleave="dragLeaveHandler(event);">
+                                            <i class="bi bi-cloud-arrow-up display-1 text-muted mb-3"></i>
+                                            <h4 class="text-muted">Drag & Drop Documents Here</h4>
+                                            <p class="text-muted">or click to browse files</p>
+                                            <input type="file" 
+                                                   id="fileInput" 
+                                                   class="d-none" 
+                                                   multiple 
+                                                   accept=".pdf,.doc,.docx"
+                                                   onchange="handleFileSelect(event)">
+                                            <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('fileInput').click()">
+                                                <i class="bi bi-folder2-open"></i> Browse Files
+                                            </button>
+                                        </div>
+
+                                        <!-- File List -->
+                                        <div id="fileList" class="mb-4" style="display: none;">
+                                            <h6>Selected Files:</h6>
+                                            <div id="selectedFiles"></div>
+                                        </div>
+
+                                        <!-- Upload Progress -->
+                                        <div id="uploadProgress" style="display: none;">
+                                            <h6>Upload Progress:</h6>
+                                            <div class="progress mb-2">
+                                                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                                     role="progressbar" 
+                                                     style="width: 0%" 
+                                                     id="progressBar">0%</div>
+                                            </div>
+                                            <small class="text-muted" id="progressText">Preparing upload...</small>
+                                        </div>
+
+                                        <!-- Upload Button -->
+                                        <div class="d-grid gap-2">
+                                            <button type="button" 
+                                                    class="btn btn-primary btn-lg" 
+                                                    id="uploadBtn"
+                                                    onclick="uploadFiles()"
+                                                    disabled>
+                                                <i class="bi bi-cloud-upload"></i>
+                                                Upload Documents
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Web Scraping Tab -->
+                    <div class="tab-pane fade" id="nav-webscrape" role="tabpanel">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-8">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <i class="bi bi-globe"></i>
+                                            Web Scraping Configuration
+                                        </h5>
+                                        
+                                        <form id="webScrapeForm">
+                                            <div class="mb-3">
+                                                <label for="websiteUrl" class="form-label">Website URL</label>
+                                                <input type="url" class="form-control" id="websiteUrl" 
+                                                       placeholder="https://example.com" required>
+                                                <div class="form-text">Enter the URL to scrape documents from</div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="scrapeDepth" class="form-label">Scraping Depth</label>
+                                                <select class="form-select" id="scrapeDepth">
+                                                    <option value="1">Current page only</option>
+                                                    <option value="2" selected>1 level deep</option>
+                                                    <option value="3">2 levels deep</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label">File Types to Scrape</label>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="pdf" id="scrapePdf" checked>
+                                                    <label class="form-check-label" for="scrapePdf">PDF Files</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="doc" id="scrapeDoc" checked>
+                                                    <label class="form-check-label" for="scrapeDoc">Word Documents</label>
+                                                </div>
+                                            </div>
+
+                                            <div class="d-grid gap-2">
+                                                <button type="submit" class="btn btn-success btn-lg">
+                                                    <i class="bi bi-arrow-down-circle"></i>
+                                                    Start Web Scraping
+                                                </button>
+                                            </div>
+                                        </form>
+
+                                        <!-- Scraping Progress -->
+                                        <div id="scrapeProgress" class="mt-4" style="display: none;">
+                                            <h6>Scraping Progress:</h6>
+                                            <div class="progress mb-2">
+                                                <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
+                                                     role="progressbar" style="width: 0%" id="scrapeProgressBar">0%</div>
+                                            </div>
+                                            <small class="text-muted" id="scrapeProgressText">Starting web scraper...</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Batch Upload Tab -->
+                    <div class="tab-pane fade" id="nav-batch" role="tabpanel">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-8">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <i class="bi bi-folder-plus"></i>
+                                            Batch Upload from Folder
+                                        </h5>
+                                        
+                                        <div class="alert alert-info" role="alert">
+                                            <i class="bi bi-info-circle"></i>
+                                            Upload multiple documents from a local folder. All PDF and Word documents will be processed automatically.
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="folderInput" class="form-label">Select Folder</label>
+                                            <input type="file" 
+                                                   class="form-control" 
+                                                   id="folderInput" 
+                                                   webkitdirectory 
+                                                   directory 
+                                                   multiple
+                                                   onchange="handleFolderSelect(event)">
+                                        </div>
+
+                                        <div id="folderContents" style="display: none;">
+                                            <h6>Folder Contents:</h6>
+                                            <div id="folderFileList" class="mb-3"></div>
+                                            
+                                            <div class="d-grid gap-2">
+                                                <button type="button" 
+                                                        class="btn btn-primary btn-lg" 
+                                                        id="batchUploadBtn"
+                                                        onclick="uploadBatchFiles()">
+                                                    <i class="bi bi-upload"></i>
+                                                    Upload All Documents
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Results -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div id="uploadResults" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="bi bi-check-circle"></i> Upload Results</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="resultsContent"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <!-- Firebase SDK -->
+    <script src="../firebase/firebase-config.js"></script>
+    <!-- Custom JavaScript -->
+    <script src="js/app.js"></script>
+
+    <script>
+        let selectedFiles = [];
+        let folderFiles = [];
+
+        // Drag and drop handlers
+        function dragOverHandler(ev) {
+            ev.preventDefault();
+            ev.currentTarget.classList.add('border-primary', 'bg-light');
+        }
+
+        function dragEnterHandler(ev) {
+            ev.preventDefault();
+        }
+
+        function dragLeaveHandler(ev) {
+            ev.currentTarget.classList.remove('border-primary', 'bg-light');
+        }
+
+        function dropHandler(ev) {
+            ev.preventDefault();
+            ev.currentTarget.classList.remove('border-primary', 'bg-light');
+            
+            const files = Array.from(ev.dataTransfer.files);
+            const validFiles = files.filter(file => 
+                file.type === 'application/pdf' || 
+                file.type === 'application/msword' || 
+                file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            );
+            
+            if (validFiles.length > 0) {
+                selectedFiles = validFiles;
+                displaySelectedFiles();
+            }
+        }
+
+        function handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+            selectedFiles = files;
+            displaySelectedFiles();
+        }
+
+        function handleFolderSelect(event) {
+            const files = Array.from(event.target.files);
+            folderFiles = files.filter(file => 
+                file.type === 'application/pdf' || 
+                file.type === 'application/msword' || 
+                file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            );
+            displayFolderContents();
+        }
+
+        function displaySelectedFiles() {
+            const fileList = document.getElementById('fileList');
+            const selectedFilesDiv = document.getElementById('selectedFiles');
+            const uploadBtn = document.getElementById('uploadBtn');
+
+            if (selectedFiles.length > 0) {
+                fileList.style.display = 'block';
+                
+                let html = '<div class="list-group">';
+                selectedFiles.forEach((file, index) => {
+                    html += `
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-file-earmark-text me-2"></i>
+                                <strong>${file.name}</strong>
+                                <small class="text-muted ms-2">(${formatFileSize(file.size)})</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeFile(${index})">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                selectedFilesDiv.innerHTML = html;
+                uploadBtn.disabled = false;
+            } else {
+                fileList.style.display = 'none';
+                uploadBtn.disabled = true;
+            }
+        }
+
+        function displayFolderContents() {
+            const folderContents = document.getElementById('folderContents');
+            const folderFileList = document.getElementById('folderFileList');
+
+            if (folderFiles.length > 0) {
+                folderContents.style.display = 'block';
+                
+                let html = `<div class="alert alert-success">Found ${folderFiles.length} documents</div>`;
+                html += '<div class="list-group">';
+                
+                folderFiles.forEach(file => {
+                    html += `
+                        <div class="list-group-item">
+                            <i class="bi bi-file-earmark-text me-2"></i>
+                            <strong>${file.name}</strong>
+                            <small class="text-muted ms-2">(${formatFileSize(file.size)})</small>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                folderFileList.innerHTML = html;
+            }
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            displaySelectedFiles();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function uploadFiles() {
+            if (selectedFiles.length === 0) return;
+
+            const uploadBtn = document.getElementById('uploadBtn');
+            const uploadProgress = document.getElementById('uploadProgress');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+
+            uploadBtn.disabled = true;
+            uploadProgress.style.display = 'block';
+
+            // TEST
+            uploadBtn.disabled = true;
+            uploadProgress.style.display = 'block';
+            progressText.textContent = `Uploading...`;
+            progressBar.style.width = '100%';
+            progressBar.textContent = '100%';
+
+            const formData = new FormData();
+            for (const file of selectedFiles) {
+                formData.append("files", file);
+            }
+
+            
+            try {
+                // Simulate upload progress
+                /*for (let i = 0; i < selectedFiles.length; i++) {
+                    const file = selectedFiles[i];
+                    const percent = Math.round(((i + 1) / selectedFiles.length) * 100);
+                    
+                    progressBar.style.width = percent + '%';
+                    progressBar.textContent = percent + '%';
+                    progressText.textContent = `Uploading ${file.name}...`;
+
+                    // Here you would implement actual file upload to your backend
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }*/
+                // TEST
+                const response = await fetch("http://127.0.0.1:8000/upload/", {
+                    method: "POST",
+                    body: formData
+                });
+            
+                if (!response.ok) {
+                    throw new Error(`Server responded with ${response.status}`);
+                }
+            
+                const result = await response.json();
+                console.log("Upload result:", result);
+            
+                const uploaded = result.uploaded || [];
+                const count = uploaded.length;
+            
+                // Update progress bar to 100%
+                progressBar.style.width = '100%';
+                progressBar.textContent = '100%';
+                progressText.textContent = `Upload completed.`;
+
+                //showUploadResults('success', selectedFiles.length);
+                // ✅ FIXED LINE:
+                showUploadResults('success', count);
+                selectedFiles = [];
+                displaySelectedFiles();
+
+
+                // TEST
+                // Show uploaded result
+                const resultsContent = document.getElementById("resultsContent");
+                //resultsContent.innerHTML = "";
+                if (count > 0) {
+                    const list = document.createElement("ul");
+                    list.className = "list-group";
+                    uploaded.forEach(file => {
+                        const li = document.createElement("li");
+                        li.className = "list-group-item";
+                        li.innerHTML = `<strong>${file.filename}</strong><br>Title: ${file.title}<br>Word Count: ${file.word_count}`;
+                        list.appendChild(li);
+                    });
+                    resultsContent.appendChild(list);
+                }
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                showUploadResults('error', 0);
+            } finally {
+                uploadBtn.disabled = false;
+                uploadProgress.style.display = 'none';
+            }
+        }
+
+        async function uploadBatchFiles() {
+            // Similar implementation to uploadFiles but for folder files
+            console.log('Batch uploading files...');
+        }
+
+        function showUploadResults(type, count) {
+            const uploadResults = document.getElementById('uploadResults');
+            const resultsContent = document.getElementById('resultsContent');
+
+            if (type === 'success') {
+                resultsContent.innerHTML = `
+                    <div class="alert alert-success" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        Successfully uploaded ${count} document(s)!
+                    </div>
+                    <p>Your documents have been processed and are now available for search and classification.</p>
+                    <a href="index.html" class="btn btn-primary">
+                        <i class="bi bi-house"></i> Return to Dashboard
+                    </a>
+                `;
+            } else {
+                resultsContent.innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        Upload failed. Please try again.
+                    </div>
+                `;
+            }
+
+            uploadResults.style.display = 'block';
+        }
+
+        // Web scraping form handler
+        document.getElementById('webScrapeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const url = document.getElementById('websiteUrl').value;
+            const depth = document.getElementById('scrapeDepth').value;
+            const scrapePdf = document.getElementById('scrapePdf').checked;
+            const scrapeDoc = document.getElementById('scrapeDoc').checked;
+
+            startWebScraping(url, depth, { pdf: scrapePdf, doc: scrapeDoc });
+        });
+
+        async function startWebScraping(url, depth, fileTypes) {
+            const scrapeProgress = document.getElementById('scrapeProgress');
+            const scrapeProgressBar = document.getElementById('scrapeProgressBar');
+            const scrapeProgressText = document.getElementById('scrapeProgressText');
+
+            scrapeProgress.style.display = 'block';
+            
+            try {
+                // Simulate web scraping progress
+                const steps = ['Analyzing website...', 'Finding documents...', 'Downloading files...', 'Processing documents...'];
+                
+                for (let i = 0; i < steps.length; i++) {
+                    const percent = Math.round(((i + 1) / steps.length) * 100);
+                    scrapeProgressBar.style.width = percent + '%';
+                    scrapeProgressBar.textContent = percent + '%';
+                    scrapeProgressText.textContent = steps[i];
+                    
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+
+                showUploadResults('success', Math.floor(Math.random() * 10) + 5);
+                
+            } catch (error) {
+                console.error('Web scraping error:', error);
+                showUploadResults('error', 0);
+            }
+        }
+    </script>
+</body>
+</html>

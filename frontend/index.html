@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Document Analytics</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        .stat-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .stat-card.documents {
+            border-left-color: #0d6efd;
+        }
+        .stat-card.storage {
+            border-left-color: #198754;
+        }
+        .stat-card.pdf {
+            border-left-color: #dc3545;
+        }
+        .stat-card.word {
+            border-left-color: #fd7e14;
+        }
+        .performance-badge {
+            font-size: 0.9rem;
+            padding: 0.5rem 0.8rem;
+            border-radius: 20px;
+        }
+        .document-card {
+            transition: all 0.2s ease;
+        }
+        .document-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .progress-thin {
+            height: 6px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        #recentDocuments tr {
+            cursor: pointer;
+        }
+        #recentDocuments tr:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-cloud-arrow-up"></i>
+                Document Analytics
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/">
+                            <i class="bi bi-house"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/upload">
+                            <i class="bi bi-cloud-upload"></i> Upload
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/search">
+                            <i class="bi bi-search"></i> Search
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/classify">
+                            <i class="bi bi-tags"></i> Classify
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="mb-4">
+                    <i class="bi bi-bar-chart"></i>
+                    Dashboard Overview
+                </h2>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card documents h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="card-title text-muted">TOTAL DOCUMENTS</h6>
+                                <h2 id="totalDocs" class="mb-0">0</h2>
+                            </div>
+                            <div class="bg-primary bg-opacity-10 p-3 rounded">
+                                <i class="bi bi-file-earmark-text fs-4 text-primary"></i>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <small class="text-muted">Last updated: <span id="lastUpdated">-</span></small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card storage h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="card-title text-muted">STORAGE USED</h6>
+                                <h2 id="storageUsed" class="mb-0">0</h2>
+                                <small class="text-muted">MB</small>
+                            </div>
+                            <div class="bg-success bg-opacity-10 p-3 rounded">
+                                <i class="bi bi-hdd fs-4 text-success"></i>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <div class="progress progress-thin">
+                                <div id="storageProgress" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card pdf h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="card-title text-muted">PDF DOCUMENTS</h6>
+                                <h2 id="pdfCount" class="mb-0">0</h2>
+                            </div>
+                            <div class="bg-danger bg-opacity-10 p-3 rounded">
+                                <i class="bi bi-file-earmark-pdf fs-4 text-danger"></i>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <small class="text-muted"><span id="pdfPercent">0</span>% of total</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card word h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="card-title text-muted">WORD DOCUMENTS</h6>
+                                <h2 id="wordCount" class="mb-0">0</h2>
+                            </div>
+                            <div class="bg-warning bg-opacity-10 p-3 rounded">
+                                <i class="bi bi-file-earmark-word fs-4 text-warning"></i>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <small class="text-muted"><span id="wordPercent">0</span>% of total</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts and Performance -->
+        <div class="row mb-4">
+            <!-- Document Type Distribution -->
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-pie-chart"></i>
+                            Document Types
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="typeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Metrics -->
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-speedometer2"></i>
+                            System Performance
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="text-muted">AVG UPLOAD TIME</h6>
+                                        <span id="avgUploadTime" class="performance-badge bg-primary">- ms</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="text-muted">AVG SEARCH TIME</h6>
+                                        <span id="avgSearchTime" class="performance-badge bg-success">- ms</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="text-muted">AVG SORT TIME</h6>
+                                        <span id="avgSortTime" class="performance-badge bg-info">- ms</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="text-muted">AVG CLASSIFY TIME</h6>
+                                        <span id="avgClassifyTime" class="performance-badge bg-warning">- ms</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <small class="text-muted">Based on last <span id="sampleSize">10</span> operations</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Documents -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock-history"></i>
+                            Recent Documents
+                        </h5>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="loadStats()">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Type</th>
+                                        <th>Size</th>
+                                        <th>Uploaded</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentDocuments">
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            <p class="mt-2 mb-0 text-muted">Loading documents...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global chart references
+        let typeChart;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            loadStats();
+            loadRecentDocuments();
+        });
+
+        // Initialize charts
+        function initializeCharts() {
+            const typeCtx = document.getElementById('typeChart').getContext('2d');
+            typeChart = new Chart(typeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['PDF', 'Word', 'Other'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: [
+                            '#dc3545',
+                            '#fd7e14',
+                            '#6c757d'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load statistics from API
+        async function loadStats() {
+            try {
+                const response = await fetch('/stats/');
+                if (!response.ok) throw new Error('Failed to fetch stats');
+                
+                const stats = await response.json();
+                updateStatsUI(stats);
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                showError('Failed to load statistics');
+            }
+        }
+
+        // Update UI with statistics
+        function updateStatsUI(stats) {
+            // Update basic stats
+            document.getElementById('totalDocs').textContent = stats.total_documents;
+            document.getElementById('storageUsed').textContent = stats.total_size_mb.toFixed(2);
+            document.getElementById('lastUpdated').textContent = formatDate(stats.last_updated);
+            
+            // Update document type counts
+            const docTypes = stats.documents_by_type;
+            const pdfCount = docTypes.pdf || 0;
+            const wordCount = (docTypes.docx || 0) + (docTypes.doc || 0);
+            const otherCount = stats.total_documents - pdfCount - wordCount;
+            
+            document.getElementById('pdfCount').textContent = pdfCount;
+            document.getElementById('wordCount').textContent = wordCount;
+            
+            // Calculate percentages
+            const total = stats.total_documents || 1; // Avoid division by zero
+            const pdfPercent = Math.round((pdfCount / total) * 100);
+            const wordPercent = Math.round((wordCount / total) * 100);
+            
+            document.getElementById('pdfPercent').textContent = pdfPercent;
+            document.getElementById('wordPercent').textContent = wordPercent;
+            document.getElementById('storageProgress').style.width = `${Math.min(100, stats.total_size_mb / 10)}%`; // Assuming 10MB max for visualization
+            
+            // Update type chart
+            typeChart.data.datasets[0].data = [pdfCount, wordCount, otherCount];
+            typeChart.update();
+            
+            // Update performance metrics
+            if (stats.processing_times) {
+                const times = stats.processing_times;
+                document.getElementById('avgUploadTime').textContent = `${times.upload?.avg_ms || 0} ms`;
+                document.getElementById('avgSearchTime').textContent = `${times.search?.avg_ms || 0} ms`;
+                document.getElementById('avgSortTime').textContent = `${times.sort?.avg_ms || 0} ms`;
+                document.getElementById('avgClassifyTime').textContent = `${times.classify?.avg_ms || 0} ms`;
+                document.getElementById('sampleSize').textContent = times.upload?.count || 0;
+            }
+        }
+
+        // Load recent documents
+        async function loadRecentDocuments() {
+            try {
+                const response = await fetch('/documents/');
+                if (!response.ok) throw new Error('Failed to fetch documents');
+                
+                const data = await response.json();
+                updateRecentDocumentsUI(data.documents);
+            } catch (error) {
+                console.error('Error loading documents:', error);
+                document.getElementById('recentDocuments').innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-danger">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Failed to load documents
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Update recent documents table
+        function updateRecentDocumentsUI(documents) {
+            const tbody = document.getElementById('recentDocuments');
+            
+            if (!documents || documents.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox"></i>
+                            No documents found
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Show last 5 documents
+            const recentDocs = documents.slice(0, 5);
+            tbody.innerHTML = recentDocs.map(doc => `
+                <tr onclick="viewDocument('${doc.id}')">
+                    <td>
+                        <i class="bi bi-file-earmark-${doc.type === 'pdf' ? 'pdf text-danger' : 'word text-primary'} me-2"></i>
+                        ${doc.title || 'Untitled Document'}
+                    </td>
+                    <td><span class="badge bg-${doc.type === 'pdf' ? 'danger' : 'primary'}">${doc.type.toUpperCase()}</span></td>
+                    <td>${formatFileSize(doc.word_count * 2)}</td> <!-- Approximate size -->
+                    <td>${formatDate(doc.upload_time)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();viewDocument('${doc.id}')">
+                            <i class="bi bi-eye"></i> View
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // View document details
+        function viewDocument(docId) {
+            // In a real implementation, this would open a modal or navigate to a detail page
+            console.log('Viewing document:', docId);
+            alert(`Would view document ${docId} in detail`);
+        }
+
+        // Helper functions
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleString();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        function showError(message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show mb-4';
+            alertDiv.innerHTML = `
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.container-fluid').prepend(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.classList.remove('show');
+                setTimeout(() => alertDiv.remove(), 150);
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

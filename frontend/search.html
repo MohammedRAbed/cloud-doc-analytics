@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Documents - Document Analytics</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/style.css" rel="stylesheet">
+    <style>
+        .highlight {
+            background-color: yellow;
+            font-weight: bold;
+        }
+        .search-result {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .content-preview {
+            max-height: 150px;
+            overflow: hidden;
+            position: relative;
+        }
+        .content-preview::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,1));
+        }
+        #initialState {
+            display: block !important; /* Ensure initial state is visible */
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-cloud-arrow-up"></i>
+                Document Analytics
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="bi bi-house"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/upload">
+                            <i class="bi bi-cloud-upload"></i> Upload
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/search">
+                            <i class="bi bi-search"></i> Search
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/classify">
+                            <i class="bi bi-tags"></i> Classify
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="mb-4">
+                    <i class="bi bi-search"></i>
+                    Search Documents
+                </h2>
+            </div>
+        </div>
+
+        <!-- Search Interface -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <!-- Main Search Bar -->
+                        <div class="row">
+                            <div class="col-lg-8 col-md-7">
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-search"></i>
+                                    </span>
+                                    <input type="text" 
+                                           class="form-control form-control-lg" 
+                                           id="searchQuery"
+                                           placeholder="Enter keywords to search documents..."
+                                           onkeypress="handleSearchKeyPress(event)">
+                                    <button class="btn btn-primary btn-lg" 
+                                            type="button" 
+                                            id="searchBtn"
+                                            onclick="performSearch()">
+                                        Search
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-5">
+                                <button class="btn btn-outline-secondary btn-lg w-100" 
+                                        type="button" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#advancedFilters">
+                                    <i class="bi bi-funnel"></i>
+                                    Advanced Filters
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Filters (Collapsible) -->
+                        <div class="collapse" id="advancedFilters">
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label for="documentType" class="form-label">Document Type</label>
+                                    <select class="form-select" id="documentType">
+                                        <option value="">All Types</option>
+                                        <option value="pdf">PDF Only</option>
+                                        <option value="docx">Word Only</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="caseSensitive" class="form-label">Case Sensitive</label>
+                                    <select class="form-select" id="caseSensitive">
+                                        <option value="false">No</option>
+                                        <option value="true">Yes</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="sortBy" class="form-label">Sort By</label>
+                                    <select class="form-select" id="sortBy">
+                                        <option value="relevance">Relevance (Most Matches)</option>
+                                        <option value="title_asc">Title (A-Z)</option>
+                                        <option value="title_desc">Title (Z-A)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="resultsPerPage" class="form-label">Results Per Page</label>
+                                    <select class="form-select" id="resultsPerPage">
+                                        <option value="10">10</option>
+                                        <option value="25" selected>25</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Results -->
+        <div class="row">
+            <div class="col-12">
+                <!-- Search Stats -->
+                <div id="searchStats" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <span class="text-muted">Found <strong id="resultCount">0</strong> results in <strong id="searchTime">0</strong>ms</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search Results Container -->
+                <div id="searchResults">
+                    <!-- Initial State -->
+                    <div class="card" id="initialState">
+                        <div class="card-body text-center py-5">
+                            <i class="bi bi-search display-1 text-muted mb-3"></i>
+                            <h4 class="text-muted">Search Your Documents</h4>
+                            <p class="text-muted">Enter keywords above to find documents in your collection</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Loading -->
+        <div id="searchLoading" style="display: none;">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h5>Searching Documents...</h5>
+                    <p class="text-muted">Please wait while we search through your document collection</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Preview Modal -->
+    <div class="modal fade" id="documentPreviewModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="previewModalTitle">Document Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="previewModalBody">
+                    <!-- Document preview content will be inserted here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JavaScript -->
+    <script>
+        let currentSearchResults = [];
+        const apiBaseUrl = 'http://localhost:8000'; // Update with your FastAPI server URL
+
+        function handleSearchKeyPress(event) {
+            if (event.key === 'Enter') {
+                performSearch();
+            }
+        }
+
+        async function performSearch() {
+            const query = document.getElementById('searchQuery').value.trim();
+            
+            if (!query) {
+                alert('Please enter search keywords');
+                return;
+            }
+
+            const searchBtn = document.getElementById('searchBtn');
+            const searchLoading = document.getElementById('searchLoading');
+            const searchResults = document.getElementById('searchResults');
+            const searchStats = document.getElementById('searchStats');
+            const initialState = document.getElementById('initialState');
+
+            // Show loading state
+            searchBtn.disabled = true;
+            searchBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Searching...';
+            searchLoading.style.display = 'block';
+            searchResults.style.display = 'none';
+            searchStats.style.display = 'none';
+            initialState.style.display = 'none';
+
+            try {
+                // Get filter values
+                const documentType = document.getElementById('documentType').value;
+                const caseSensitive = document.getElementById('caseSensitive').value === 'true';
+                const sortBy = document.getElementById('sortBy').value;
+
+                // Start timer
+                const startTime = Date.now();
+                
+                // Call the search API
+                const response = await fetch(`${apiBaseUrl}/documents/search/?keywords=${encodeURIComponent(query)}&case_sensitive=${caseSensitive}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                let data = await response.json();
+                const searchTime = Date.now() - startTime;
+
+                // Apply client-side filtering and sorting
+                data = processSearchResults(data, documentType, sortBy);
+
+                displaySearchResults(data, searchTime);
+
+            } catch (error) {
+                console.error('Search error:', error);
+                displaySearchError();
+            } finally {
+                // Reset button state
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = 'Search';
+                searchLoading.style.display = 'none';
+                searchResults.style.display = 'block';
+            }
+        }
+
+        function processSearchResults(data, documentType, sortBy) {
+            // Filter by document type if specified
+            let filteredResults = data.results;
+            if (documentType) {
+                filteredResults = filteredResults.filter(doc => {
+                    const ext = doc.filename.split('.').pop().toLowerCase();
+                    return ext === documentType;
+                });
+            }
+
+            // Sort results
+            switch(sortBy) {
+                case 'title_asc':
+                    filteredResults.sort((a, b) => a.title.localeCompare(b.title));
+                    break;
+                case 'title_desc':
+                    filteredResults.sort((a, b) => b.title.localeCompare(a.title));
+                    break;
+                case 'relevance':
+                default:
+                    // Already sorted by relevance (match count) from the API
+                    break;
+            }
+
+            return {
+                results: filteredResults,
+                totalCount: filteredResults.length
+            };
+        }
+
+        function displaySearchResults(data, searchTime) {
+            const searchStats = document.getElementById('searchStats');
+            const searchResults = document.getElementById('searchResults');
+            const resultCount = document.getElementById('resultCount');
+            const searchTimeElement = document.getElementById('searchTime');
+
+            // Update search stats
+            resultCount.textContent = data.totalCount;
+            searchTimeElement.textContent = searchTime;
+            searchStats.style.display = 'block';
+
+            // Generate results HTML
+            let html = '';
+            
+            if (data.results.length === 0) {
+                html = `
+                    <div class="card">
+                        <div class="card-body text-center py-5">
+                            <i class="bi bi-search display-1 text-muted mb-3"></i>
+                            <h4 class="text-muted">No Results Found</h4>
+                            <p class="text-muted">Try adjusting your search terms or filters</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                data.results.forEach(doc => {
+                    const fileExt = doc.filename.split('.').pop().toLowerCase();
+                    const iconClass = fileExt === 'pdf' ? 'file-earmark-pdf' : 'file-earmark-word';
+                    
+                    html += `
+                        <div class="card mb-3 search-result">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <h5 class="card-title">
+                                            <i class="bi bi-${iconClass} me-2"></i>
+                                            ${doc.title}
+                                        </h5>
+                                        <div class="content-preview mb-3">
+                                            ${doc.highlighted_content.substring(0, 500)}...
+                                        </div>
+                                        <small class="text-muted">
+                                            <span class="badge bg-secondary me-2">${fileExt.toUpperCase()}</span>
+                                            Words: ${doc.word_count} | Matches: ${doc.match_count}
+                                        </small>
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <button class="btn btn-outline-primary" 
+                                                onclick="previewDocument('${doc.filename}', '${escapeHtml(doc.title)}', '${escapeHtml(doc.highlighted_content)}')">
+                                            <i class="bi bi-eye"></i> View Full Document
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            searchResults.innerHTML = html;
+            currentSearchResults = data.results;
+        }
+
+        function previewDocument(filename, title, content) {
+            const modal = new bootstrap.Modal(document.getElementById('documentPreviewModal'));
+            document.getElementById('previewModalTitle').textContent = title;
+            document.getElementById('previewModalBody').innerHTML = `
+                <div class="mb-3">
+                    <span class="badge bg-secondary">${filename.split('.').pop().toUpperCase()}</span>
+                    <h6 class="d-inline ms-2">${filename}</h6>
+                </div>
+                <div class="border p-3 bg-light">
+                    ${content}
+                </div>
+            `;
+            modal.show();
+        }
+
+        function displaySearchError() {
+            const searchResults = document.getElementById('searchResults');
+            searchResults.innerHTML = `
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-exclamation-triangle display-1 text-danger mb-3"></i>
+                        <h4 class="text-danger">Search Error</h4>
+                        <p class="text-muted">An error occurred while searching. Please try again.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Ensure initial state is visible
+            document.getElementById('initialState').style.display = 'block';
+            document.getElementById('searchResults').style.display = 'block';
+            document.getElementById('searchLoading').style.display = 'none';
+            document.getElementById('searchStats').style.display = 'none';
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classify Documents - Document Analytics</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        .upload-zone {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-zone:hover {
+            border-color: #0d6efd;
+            background-color: #f8f9fa;
+        }
+        
+        .upload-zone.dragover {
+            border-color: #0d6efd;
+            background-color: #e3f2fd;
+        }
+        
+        .document-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .document-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .document-card.selected {
+            border-color: #0d6efd;
+            background-color: #e3f2fd;
+        }
+        
+        .confidence-bar {
+            height: 20px;
+            border-radius: 10px;
+            background: linear-gradient(90deg, #28a745 0%, #ffc107 50%, #dc3545 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .confidence-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        .classification-result {
+            animation: fadeInUp 0.5s ease;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .category-badge {
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+        }
+        
+        .progress-ring {
+            width: 60px;
+            height: 60px;
+        }
+        
+        .progress-ring circle {
+            fill: none;
+            stroke: #dee2e6;
+            stroke-width: 4;
+        }
+        
+        .progress-ring .progress {
+            stroke: #0d6efd;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.3s ease;
+        }
+        
+        /* Fix for chart container */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-cloud-arrow-up"></i>
+                Document Analytics
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="bi bi-house"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/upload">
+                            <i class="bi bi-cloud-upload"></i> Upload
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/search">
+                            <i class="bi bi-search"></i> Search
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/classify">
+                            <i class="bi bi-tags"></i> Classify
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="mb-4">
+                    <i class="bi bi-tags"></i>
+                    Document Classification
+                </h2>
+                <p class="text-muted mb-4">Automatically classify your documents into predefined categories using machine learning.</p>
+            </div>
+        </div>
+
+        <!-- Classification Categories Info -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-info-circle"></i>
+                            Available Categories
+                        </h5>
+                        <div id="categoriesContainer" class="d-flex flex-wrap gap-2">
+                            <!-- Categories will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Selection -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-file-earmark-check"></i>
+                            Select Documents to Classify
+                        </h5>
+                        <div>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="selectAllDocuments()">
+                                <i class="bi bi-check-all"></i> Select All
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="clearSelection()">
+                                <i class="bi bi-x-square"></i> Clear All
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Document Filter -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="documentFilter"
+                                       placeholder="Filter documents by title..."
+                                       oninput="filterDocuments()">
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select" id="typeFilter" onchange="filterDocuments()">
+                                    <option value="">All Types</option>
+                                    <option value="pdf">PDF Only</option>
+                                    <option value="docx">Word Only</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-primary w-100" onclick="loadDocuments()">
+                                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Documents List -->
+                        <div id="documentsContainer">
+                            <div class="text-center py-4">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Loading documents...</p>
+                            </div>
+                        </div>
+
+                        <!-- Classification Controls -->
+                        <div class="mt-4 pt-3 border-top">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <span class="text-muted">
+                                        <strong id="selectedCount">0</strong> document(s) selected
+                                    </span>
+                                </div>
+                                <div class="col-md-4">
+                                    <button class="btn btn-success w-100" 
+                                            id="classifyBtn"
+                                            onclick="classifySelectedDocuments()"
+                                            disabled>
+                                        <i class="bi bi-play-circle"></i>
+                                        Classify Selected
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Classification Summary -->
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-pie-chart"></i>
+                            Classification Summary
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="classificationChart"></canvas>
+                        </div>
+                        <div id="summaryStats" class="mt-3">
+                            <div class="text-center text-muted">
+                                <i class="bi bi-info-circle"></i>
+                                <p class="mb-0">No classifications yet</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Classification Results -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div id="classificationResults" style="display: none;">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="bi bi-check-circle"></i>
+                                Classification Results
+                            </h5>
+                            <button class="btn btn-outline-primary btn-sm" onclick="exportResults()">
+                                <i class="bi bi-download"></i> Export Results
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="resultsContainer">
+                                <!-- Results will be displayed here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Classification Progress Modal -->
+        <div class="modal fade" id="classificationModal" tabindex="-1" data-bs-backdrop="static">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-gear"></i>
+                            Classifying Documents
+                        </h5>
+                    </div>
+                    <div class="modal-body text-center">
+                        <div class="progress-ring mx-auto mb-3">
+                            <svg width="60" height="60">
+                                <circle cx="30" cy="30" r="26" stroke="#dee2e6" stroke-width="4" fill="none"/>
+                                <circle cx="30" cy="30" r="26" stroke="#0d6efd" stroke-width="4" fill="none"
+                                        stroke-linecap="round" stroke-dasharray="163.36" stroke-dashoffset="163.36"
+                                        id="progressCircle" class="progress"/>
+                            </svg>
+                        </div>
+                        <h5 id="progressText">Analyzing documents...</h5>
+                        <p class="text-muted" id="progressDetail">This may take a few moments</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%" id="progressBar">
+                                0%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Global variables
+        let allDocuments = [];
+        let filteredDocuments = [];
+        let selectedDocuments = new Set();
+        let classificationResults = [];
+        let chart = null;
+
+        // API Base URL - adjust this to match your FastAPI server
+        const API_BASE_URL = 'http://localhost:8000/api/v1';
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCategories();
+            loadDocuments();
+            initializeChart();
+        });
+
+        // Load classification categories
+        async function loadCategories() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/classify/categories/`);
+                const data = await response.json();
+                
+                const container = document.getElementById('categoriesContainer');
+                container.innerHTML = data.categories.map(category => 
+                    `<span class="badge bg-secondary category-badge">${category}</span>`
+                ).join('');
+            } catch (error) {
+                console.error('Error loading categories:', error);
+                showAlert('Error loading categories', 'danger');
+            }
+        }
+
+        // Load documents from API
+        async function loadDocuments() {
+            try {
+                const response = await fetch('http://localhost:8000/documents/');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch documents');
+                }
+                
+                const data = await response.json();
+                allDocuments = data.documents || [];
+                filteredDocuments = [...allDocuments];
+                
+                displayDocuments();
+            } catch (error) {
+                console.error('Error loading documents:', error);
+                // Show mock data for demonstration
+                showMockDocuments();
+            }
+        }
+
+        // Show mock documents for demonstration
+        function showMockDocuments() {
+            allDocuments = [
+                {
+                    id: '1',
+                    title: 'Machine Learning Research Paper',
+                    type: 'pdf',
+                    size: '2.3 MB',
+                    uploaded_at: '2024-01-15T10:30:00Z',
+                    content: 'research study university education learning machine learning algorithms'
+                },
+                {
+                    id: '2',
+                    title: 'Business Analytics Report 2024',
+                    type: 'docx',
+                    size: '1.8 MB',
+                    uploaded_at: '2024-01-20T14:15:00Z',
+                    content: 'market sales business profit growth quarterly report financial analysis'
+                },
+                {
+                    id: '3',
+                    title: 'Software Development Guide',
+                    type: 'pdf',
+                    size: '4.1 MB',
+                    uploaded_at: '2024-01-18T09:45:00Z',
+                    content: 'programming code software development technical documentation API'
+                },
+                {
+                    id: '4',
+                    title: 'Random Notes Collection',
+                    type: 'docx',
+                    size: '0.8 MB',
+                    uploaded_at: '2024-01-22T16:20:00Z',
+                    content: 'random miscellaneous unknown text various topics'
+                }
+            ];
+            filteredDocuments = [...allDocuments];
+            displayDocuments();
+        }
+
+        // Display documents in the UI
+        function displayDocuments() {
+            const container = document.getElementById('documentsContainer');
+            
+            if (filteredDocuments.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="bi bi-file-earmark-x display-1 text-muted"></i>
+                        <h5 class="text-muted mt-2">No documents found</h5>
+                        <p class="text-muted">Try adjusting your filters or upload some documents first.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const html = filteredDocuments.map(doc => `
+                <div class="document-card card mb-2 ${selectedDocuments.has(doc.id) ? 'selected' : ''}" 
+                     onclick="toggleDocumentSelection('${doc.id}')">
+                    <div class="card-body py-2">
+                        <div class="row align-items-center">
+                            <div class="col-md-1">
+                                <input type="checkbox" 
+                                       class="form-check-input" 
+                                       ${selectedDocuments.has(doc.id) ? 'checked' : ''}
+                                       onchange="toggleDocumentSelection('${doc.id}')"
+                                       onclick="event.stopPropagation()">
+                            </div>
+                            <div class="col-md-8">
+                                <h6 class="mb-1">
+                                    <i class="bi bi-file-earmark-${doc.type === 'pdf' ? 'pdf' : 'word'} me-2"></i>
+                                    ${doc.title}
+                                </h6>
+                                
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <span class="badge bg-light text-dark">Ready</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = html;
+            updateSelectedCount();
+        }
+
+        /*
+        <small class="text-muted">
+                                    ${doc.type.toUpperCase()} • ${doc.size} • ${formatDate(doc.uploaded_at)}
+                                </small>
+        */
+        // Toggle document selection
+        function toggleDocumentSelection(docId) {
+            if (selectedDocuments.has(docId)) {
+                selectedDocuments.delete(docId);
+            } else {
+                selectedDocuments.add(docId);
+            }
+            displayDocuments();
+        }
+
+        // Select all documents
+        function selectAllDocuments() {
+            filteredDocuments.forEach(doc => selectedDocuments.add(doc.id));
+            displayDocuments();
+        }
+
+        // Clear selection
+        function clearSelection() {
+            selectedDocuments.clear();
+            displayDocuments();
+        }
+
+        // Update selected count and enable/disable classify button
+        function updateSelectedCount() {
+            const count = selectedDocuments.size;
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('classifyBtn').disabled = count === 0;
+        }
+
+        // Filter documents
+        function filterDocuments() {
+            const titleFilter = document.getElementById('documentFilter').value.toLowerCase();
+            const typeFilter = document.getElementById('typeFilter').value;
+
+            filteredDocuments = allDocuments.filter(doc => {
+                const matchesTitle = doc.title.toLowerCase().includes(titleFilter);
+                const matchesType = !typeFilter || doc.type === typeFilter;
+                return matchesTitle && matchesType;
+            });
+
+            displayDocuments();
+        }
+
+        // Classify selected documents
+        async function classifySelectedDocuments() {
+            if (selectedDocuments.size === 0) return;
+
+            const modal = new bootstrap.Modal(document.getElementById('classificationModal'));
+            modal.show();
+
+            try {
+                const documentIds = Array.from(selectedDocuments);
+                updateProgress(0, 'Preparing classification...');
+
+                const response = await fetch(`${API_BASE_URL}/classify/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(documentIds)
+                });
+
+                updateProgress(50, 'Processing documents...');
+
+                if (!response.ok) {
+                    throw new Error('Classification failed');
+                }
+
+                const data = await response.json();
+                updateProgress(100, 'Classification complete!');
+
+                setTimeout(() => {
+                    modal.hide();
+                    displayClassificationResults(data.results);
+                    updateChart(data.results);
+                }, 1000);
+
+            } catch (error) {
+                console.error('Classification error:', error);
+                modal.hide();
+                showAlert('Classification failed. Please try again.', 'danger');
+            }
+        }
+
+        // Update progress in modal
+        function updateProgress(percentage, text, detail = '') {
+            const progressBar = document.getElementById('progressBar');
+            const progressCircle = document.getElementById('progressCircle');
+            const progressText = document.getElementById('progressText');
+            const progressDetail = document.getElementById('progressDetail');
+
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = percentage + '%';
+
+            const circumference = 163.36;
+            const offset = circumference - (percentage / 100) * circumference;
+            progressCircle.style.strokeDashoffset = offset;
+
+            progressText.textContent = text;
+            if (detail) progressDetail.textContent = detail;
+        }
+
+        // Display classification results
+        function displayClassificationResults(results) {
+            classificationResults = results;
+            const container = document.getElementById('resultsContainer');
+            const resultsSection = document.getElementById('classificationResults');
+
+            let html = '';
+            results.forEach(result => {
+                if (result.error) {
+                    html += `
+                        <div class="alert alert-warning d-flex align-items-center classification-result">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <div>
+                                <strong>Error:</strong> ${result.error} (Document ID: ${result.document_id})
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    const confidence = result.confidence_scores[result.predicted_category];
+                    const confidencePercent = Math.round(confidence * 100);
+                    
+                    html += `
+                        <div class="card mb-3 classification-result">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-6">
+                                        <h6 class="mb-1">${result.title}</h6>
+                                        <small class="text-muted">Document ID: ${result.document_id}</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <span class="badge bg-${getCategoryColor(result.predicted_category)} category-badge">
+                                            ${result.predicted_category}
+                                        </span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <small class="text-muted d-block">Confidence</small>
+                                            <strong class="text-${getConfidenceColor(confidence)}">${confidencePercent}%</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted d-block mb-1">Confidence Scores:</small>
+                                    ${Object.entries(result.confidence_scores).map(([category, score]) => `
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="small">${category}</span>
+                                            <div class="flex-grow-1 mx-2">
+                                                <div class="progress" style="height: 8px;">
+                                                    <div class="progress-bar bg-${getCategoryColor(category)}" 
+                                                         style="width: ${Math.round(score * 100)}%"></div>
+                                                </div>
+                                            </div>
+                                            <span class="small text-muted">${Math.round(score * 100)}%</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            container.innerHTML = html;
+            resultsSection.style.display = 'block';
+            
+            // Scroll to results
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Initialize classification chart
+        function initializeChart() {
+            const ctx = document.getElementById('classificationChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [
+                            '#0d6efd',
+                            '#198754',
+                            '#ffc107',
+                            '#dc3545'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update chart with classification results
+        function updateChart(results) {
+            const categoryCounts = {};
+            
+            results.forEach(result => {
+                if (!result.error) {
+                    const category = result.predicted_category;
+                    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+                }
+            });
+
+            const labels = Object.keys(categoryCounts);
+            const data = Object.values(categoryCounts);
+
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = data;
+            chart.update();
+
+            // Update summary stats
+            const totalClassified = results.filter(r => !r.error).length;
+            const summaryStats = document.getElementById('summaryStats');
+            
+            let statsHtml = `
+                <div class="text-center">
+                    <h4 class="text-primary">${totalClassified}</h4>
+                    <p class="text-muted mb-2">Documents Classified</p>
+                </div>
+                <hr>
+            `;
+
+            Object.entries(categoryCounts).forEach(([category, count]) => {
+                const percentage = Math.round((count / totalClassified) * 100);
+                statsHtml += `
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-${getCategoryColor(category)}">${category}</span>
+                        <span class="text-muted">${count} (${percentage}%)</span>
+                    </div>
+                `;
+            });
+
+            summaryStats.innerHTML = statsHtml;
+        }
+
+        // Helper functions
+        function getCategoryColor(category) {
+            const colors = {
+                'Academic': 'primary',
+                'Business': 'success',
+                'Technical': 'warning',
+                'Other': 'secondary'
+            };
+            return colors[category] || 'secondary';
+        }
+
+        function getConfidenceColor(confidence) {
+            if (confidence >= 0.8) return 'success';
+            if (confidence >= 0.6) return 'warning';
+            return 'danger';
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString();
+        }
+
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Export results
+        function exportResults() {
+            if (classificationResults.length === 0) {
+                showAlert('No classification results to export', 'warning');
+                return;
+            }
+
+            const csvContent = "data:text/csv;charset=utf-8," + 
+                "Document ID,Title,Predicted Category,Confidence,Academic,Business,Technical,Other\n" +
+                classificationResults.map(result => {
+                    if (result.error) return `${result.document_id},Error,${result.error},,,,,`;
+                    
+                    const scores = result.confidence_scores;
+                    return `${result.document_id},"${result.title}",${result.predicted_category},${Math.round(scores[result.predicted_category] * 100)}%,${Math.round((scores.Academic || 0) * 100)}%,${Math.round((scores.Business || 0) * 100)}%,${Math.round((scores.Technical || 0) * 100)}%,${Math.round((scores.Other || 0) * 100)}%`;
+                }).join("\n");
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "classification_results.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>

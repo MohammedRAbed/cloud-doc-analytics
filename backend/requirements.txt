@@ -1,0 +1,5 @@
+pymupdf
+python-docx
+python-multipart
+scikit-learn>=1.0.0
+numpy>=1.20.0
