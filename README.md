@@ -16,10 +16,10 @@ A cloud-based document processing system with:
 
 | Feature | Preview |
 |---------|---------|
-| **Dashboard** | ![Dashboard](https://via.placeholder.com/600x300?text=Dashboard+Screenshot) |
-| **Document Upload** | ![Upload](https://via.placeholder.com/600x300?text=Upload+Interface) |
-| **Search Results** | ![Search](https://via.placeholder.com/600x300?text=Search+Results+with+Highlighting) |
-| **Classification** | ![Classification](https://via.placeholder.com/600x300?text=Classification+Results) |
+| **Dashboard** | ![Dashboard](screenshots/home.png) |
+| **Document Upload** | ![Upload](screenshots/upload.png) |
+| **Search Results** | ![Search](screenshots/search.png) |
+| **Classification** | ![Classification](screenshots/classify.png) |
 
 ## 🚀 Features
 
